@@ -12,18 +12,18 @@ const APP_KEY string = "Application"
 const ENV_KEY string = "Environment"
 
 type EC2Instance struct {
-	id *string
-	stackId *string
-	ipAddress *string
+	id string
+	stackId string
+	ipAddress string
 }
 
-type CloudFormation struct {
+type CloudFormationStack struct {
 	instances []EC2Instance
-	name *string
+	name string
 }
 
-func instances(app *string, env *string) {
-	var stacks = make(map[string]CloudFormation)
+func instancesForAppAndEnv(app *string, env *string) map[string]CloudFormationStack {
+	var stacks = make(map[string]CloudFormationStack)
 	/*
 	Make a new connection to AWS' EC2 API
 	 */
@@ -45,7 +45,7 @@ func instances(app *string, env *string) {
 		for _, inst := range resp.Reservations[idx].Instances {
 			var instance EC2Instance
 			var stackId *string
-			var ip *string
+			var ip string
 
 			match := make(map[string]bool)
 			match["app"] = false
@@ -79,10 +79,10 @@ func instances(app *string, env *string) {
 			 */
 			if match["app"] && match["env"] {
 				if inst.PrivateIPAddress != nil {
-					ip = inst.PrivateIPAddress
+					ip = *inst.PrivateIPAddress
 				} else {
 					if inst.PublicIPAddress != nil {
-						ip = inst.PublicIPAddress
+						ip = *inst.PublicIPAddress
 					}
 				}
 			}
@@ -91,31 +91,35 @@ func instances(app *string, env *string) {
 			If there is no ip for the instance we can't get to it
 			anyway so don't print it.
 			 */
-			if *ip != "" {
-				instance.id = inst.InstanceID
+			if ip != "" {
+				instance.id = *inst.InstanceID
 
 				if stackId != nil {
-					instance.stackId = stackId
+					instance.stackId = *stackId
 				}
 				instance.ipAddress = ip
-				if value, isPresent := stacks[*stackId]; !isPresent {
-					var stack CloudFormation
+				if _, isPresent := stacks[*stackId]; !isPresent {
+					var stack CloudFormationStack
 					stacks[*stackId] = stack
 				}
-				var instances []EC2Instance
-				instances = stacks[*stackId].instances
-				instances = append(instances, instance)
-				stacks[*stackId].instances = instances
-				instancePrinter(&instance)
+
+				/*
+				The contents of map members are immutable so we copy them out,
+				change them, then set the old member to the new value.
+				 */
+				var stack CloudFormationStack
+				stack = stacks[*stackId]
+				stack.instances = append(stack.instances, instance)
+				stacks[*stackId] = stack
 			}
 		}
 	}
+	return stacks
 }
 
 func instancePrinter(instance_data *EC2Instance) {
-	fmt.Println("Instance: ", instance_data.id)
-	fmt.Println("Stack-ID: ", instance_data.stackId)
-	fmt.Println("\tIP: ", instance_data.ipAddress)
+	fmt.Println("\tInstance: ", instance_data.id)
+	fmt.Println("\t\tIP: ", instance_data.ipAddress)
 	fmt.Println()
 }
 
@@ -132,5 +136,11 @@ func main() {
 		panic("You must pass an env name with -env")
 	}
 
-	instances(appPtr, envPtr)
+	stacks := instancesForAppAndEnv(appPtr, envPtr)
+	for key, value := range stacks {
+		fmt.Println("Stack-ID: ", key)
+		for _, instances := range value.instances {
+			instancePrinter(&instances)
+		}
+	}
 }
