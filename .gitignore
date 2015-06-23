@@ -1,0 +1,6 @@
+# Jetbrains fileturds
+.idea
+*.iml
+
+# Compiled Windows Executables (Don't Judge)
+*.exe
