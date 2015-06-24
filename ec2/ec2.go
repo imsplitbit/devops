@@ -1,4 +1,4 @@
-package main
+package ec2
 
 import (
 	"fmt"
@@ -10,6 +10,10 @@ import (
 const STACK_ID_KEY string = "aws:cloudformation:stack-name"
 const APP_KEY string = "Application"
 const ENV_KEY string = "Environment"
+
+type EC2Instance interface {
+	New() EC2Instance
+}
 
 type EC2Instance struct {
 	id string
