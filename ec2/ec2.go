@@ -11,23 +11,27 @@ const STACK_ID_KEY string = "aws:cloudformation:stack-name"
 const APP_KEY string = "Application"
 const ENV_KEY string = "Environment"
 
-type EC2Instance interface {
-	New() EC2Instance
-}
+//type EC2Instance interface {
+//	New() Instance
+//}
+//
+//type EC2Instances interface {
+//	instanceForAppAndEnv() map[string]Instances
+//}
 
-type EC2Instance struct {
+type Instance struct {
 	id string
 	stackId string
 	ipAddress string
 }
 
-type CloudFormationStack struct {
-	instances []EC2Instance
+type Instances struct {
+	instances []Instance
 	name string
 }
 
-func instancesForAppAndEnv(app *string, env *string) map[string]CloudFormationStack {
-	var stacks = make(map[string]CloudFormationStack)
+func (i Instances) instancesForAppAndEnv(app *string, env *string) map[string]Instances {
+	var stacks = make(map[string]Instances)
 	/*
 	Make a new connection to AWS' EC2 API
 	 */
@@ -47,7 +51,7 @@ func instancesForAppAndEnv(app *string, env *string) map[string]CloudFormationSt
 	 */
 	for idx, _ := range resp.Reservations {
 		for _, inst := range resp.Reservations[idx].Instances {
-			var instance EC2Instance
+			var instance Instance
 			var stackId *string
 			var ip string
 
@@ -103,7 +107,7 @@ func instancesForAppAndEnv(app *string, env *string) map[string]CloudFormationSt
 				}
 				instance.ipAddress = ip
 				if _, isPresent := stacks[*stackId]; !isPresent {
-					var stack CloudFormationStack
+					var stack Instances
 					stacks[*stackId] = stack
 				}
 
@@ -111,7 +115,7 @@ func instancesForAppAndEnv(app *string, env *string) map[string]CloudFormationSt
 				The contents of map members are immutable so we copy them out,
 				change them, then set the old member to the new value.
 				 */
-				var stack CloudFormationStack
+				var stack Instances
 				stack = stacks[*stackId]
 				stack.instances = append(stack.instances, instance)
 				stacks[*stackId] = stack
@@ -121,7 +125,7 @@ func instancesForAppAndEnv(app *string, env *string) map[string]CloudFormationSt
 	return stacks
 }
 
-func instancePrinter(instance_data *EC2Instance) {
+func (i Instance) Print(instance_data *Instance) {
 	fmt.Println("\tInstance: ", instance_data.id)
 	fmt.Println("\t\tIP: ", instance_data.ipAddress)
 	fmt.Println()
