@@ -3,7 +3,7 @@ package devops
 import (
 	"flag"
 	"fmt"
-	"github.com/imsplitbit/devops/ec2"
+	"./ec2"
 )
 
 func main() {
@@ -19,11 +19,13 @@ func main() {
 		panic("You must pass an env name with -env")
 	}
 
-	stacks := instancesForAppAndEnv(appPtr, envPtr)
+	var instance ec2.Instance
+	var instances ec2.Instances
+	stacks := instances.instancesForAppAndEnv(appPtr, envPtr)
 	for key, value := range stacks {
 		fmt.Println("Stack-ID: ", key)
 		for _, instances := range value.instances {
-			instancePrinter(&instances)
+			instance.Print(&instances)
 		}
 	}
 }

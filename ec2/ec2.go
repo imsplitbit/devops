@@ -144,11 +144,13 @@ func main() {
 		panic("You must pass an env name with -env")
 	}
 
-	stacks := instancesForAppAndEnv(appPtr, envPtr)
+	var instances Instances
+	var instance Instance
+	stacks := instances.instancesForAppAndEnv(appPtr, envPtr)
 	for key, value := range stacks {
 		fmt.Println("Stack-ID: ", key)
 		for _, instances := range value.instances {
-			instancePrinter(&instances)
+			instance.Print(&instances)
 		}
 	}
 }
